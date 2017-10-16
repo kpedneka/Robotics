@@ -31,6 +31,7 @@ def trilaterate3D(distances):
     # x = ( a^2 + d^2 - b^2 ) / 2d
     x = ( math.pow(d[0],2) + math.pow(coord[1][0],2) - math.pow(d[1],2) ) / ( 2*coord[1][0] )
     y = math.sqrt((d[0]**2 - x**2))
+    z = math.sqrt(d[0]**2 - x**2 - y**2)
     #need to unrotate, untranslate x and y to get back what we want
     theta2 =  2*math.pi - theta
     rotationZ = [[math.cos(theta2), -math.sin(theta2), 0],
@@ -39,10 +40,9 @@ def trilaterate3D(distances):
     print "\ntheta is:\t", numpy.degrees(theta2)
     unrotate = numpy.dot(rotationZ, numpy.transpose([x,y,0]))
     untranslate = [a_i - b_i for a_i, b_i in zip(unrotate, translate)]
-    print untranslate
     x = untranslate[0]
     y = untranslate[1]
-    z = math.sqrt(d[0]**2 - x**2 - y**2)
+    z = untranslate[2]
     return [x,y,z]
 
 if __name__ == "__main__":
