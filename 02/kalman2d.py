@@ -1,7 +1,7 @@
 import sys, matplotlib.pyplot as plt, numpy as np
 
 def kalman(data):
-    x_guess = np.matrix([[1], [1]])
+    x_guess = np.matrix([[x10], [x20]])
     P0_guess = np.matrix(np.identity(2)) * scaler
 
     # these are the variables we want to keep track of
@@ -51,7 +51,7 @@ def kalman(data):
         print item[1][1]
         kalman_y.append(item[1][1])
 
-    plt.plot(z_1,z_2,'ro')
+    plt.plot(z_1,z_2,'r-')
     plt.plot(kalman_x,kalman_y,'g-')
     plt.show()
 
