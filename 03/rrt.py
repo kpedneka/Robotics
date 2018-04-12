@@ -256,6 +256,7 @@ def translateRobot(robot, point):
 Collision checking
 '''
 def isCollisionFree(robot, point, obstacles):
+    print point
     robot = translateRobot(robot, point)
     if outOfBounds(robot):
         return True
@@ -277,7 +278,7 @@ Detect collision with boundary
 def outOfBounds(robot):
     for point in robot:
         if point[0] >= 10 or point[1] >= 10:
-            # print "out of bounds"
+            print "out of bounds"
             return True
     return False
 '''
@@ -341,8 +342,8 @@ def inside(midpoint, polygons):
 Helper Function to check the robot collision on the way
 '''
 def recursive(robot,point1, point2, obstacles):
-   x_f = point2[0] - point1[0]/20
-   y_f = point2[1] - point1[1]/20
+   x_f = (point2[0] - point1[0])/20
+   y_f = (point2[1] - point1[1])/20
    for i in range(0,20):
 	mid = (x1+x_f*i,y1+y_f*i)
 	if isCollisionFree(robot, mid, obstacles) == False:
@@ -359,11 +360,11 @@ def growfullRRT(points, obstacles, start, goal, robot):
     Gconnected = False
     Sconnected = False
     startkey = 0
-    goalkey = 0
+    goalkey = -1
     # This array allows us to quickly find 1-NN
     pointArr = []
     pointArr.append(points[1])
-    # print "Start", start, "Goal", goal
+    print "Start", start, "Goal", goal
     # add root point to newPoints and [] to it's adjacency list index
     count = 1
     newPoints[count] = points[1]
@@ -371,121 +372,120 @@ def growfullRRT(points, obstacles, start, goal, robot):
 
     for i in range (2, len(points)+1):
 
-        if (i%10 == 0) and Sconnected == False:
-            # print "working on start", i
-            SN = findNearest(start, pointArr)
-            key = newPoints.keys()[newPoints.values().index(SN)]
-            points[i] = start
-            # print "key",key
-        if(i%11 == 0) and Gconnected == False:
-            # print "working on goal",i
-            GN = findNearest(goal,pointArr)
-            key = newPoints.keys()[newPoints.values().index(GN)]
-            points[i] = goal
-            # print "key", key
+	if (i%5 == 0) and Sconnected == False:
+	    print "working on start", i
+	    SN = findNearest(start, pointArr)
+	    key = newPoints.keys()[newPoints.values().index(SN)]
+	    points[i] = start
+	elif(i%6 == 0) and Gconnected == False:
+	    print "working on goal",i
+	    GN = findNearest(goal,pointArr)
+	    key = newPoints.keys()[newPoints.values().index(GN)]
+	    points[i] = goal
+	else:
+           # find nearest neighbor in existing tree
+           NN = findNearest(points[i], pointArr)
+           # create an edge for all the neighbors of NN in adjacency list
+           key = newPoints.keys()[newPoints.values().index(NN)]
+           # vertex has no neighbors at all (isolated vertex)
+        if len(adjListMap[key]) == 0:
+            #print "no neighbors", key
+            # add points[i] to newPoints and make both these vertices neighbors of each other
+	    enter = False
+            for obstacle in obstacles:
+		for q in range(0, len(obstacle)):
+		    o2 = obstacle[q]
+		    o1 = obstacle[q-1]
+		    c1, c2 = findIntersection([o2,o1],[points[i],points[1]])
+		    if c1 > 0 and c2 > 0:
+			enter = True 
+	    if enter == False and recursive(robot,points[i],points[1],obstacles):
+		print
+		print
+		print "intersection points", c1,c2
+		print "vertices are", points[i],points[1]
+		count = count + 1 
+        	newPoints[count] = points[i]
+            	adjListMap[key] = [count]
+            	adjListMap[count] = [key]
+            	pointArr.append(points[i])
+		print "newPoints are ", newPoints
+		print "Adjacent List is", adjListMap
+		print 
+		print
+		#displayRRTandPath(newPoints, adjListMap, None, startr, goalr, obstacles)
+		#exit()
         else:
-            # print "working on points"
-            # find nearest neighbor in existing tree
-            NN = findNearest(points[i], pointArr)
-            # create an edge for all the neighbors of NN in adjacency list
-            key = newPoints.keys()[newPoints.values().index(NN)]
-            # print "key", key
-            # vertex has no neighbors at all (isolated vertex)
-            if len(adjListMap[key]) == 0:
-                # print "no neighbors", key
-                # add points[i] to newPoints and make both these vertices neighbors of each other
-                enter = False
-                for obstacle in obstacles:
-                    for q in range(0, len(obstacle)):
-                        o2 = obstacle[q]
-                        o1 = obstacle[q-1]
-                        c1, c2 = findIntersection([o1,o2],[points[i],points[1]])
-                        if c1 > 0 and c2 > 0:
-                            # print "collision "
-                            enter = True 
-                if enter == False and recursive(robot,points[i],points[1],obstacles):
-                    # print
-                    # print
-                    # print "intersection points", c1,c2
-                    # print "vertices are", points[i],points[1]
-                    count = count + 1 
-                    newPoints[count] = points[i]
-                    adjListMap[key] = [count]
-                    adjListMap[count] = [key]
-                    pointArr.append(points[i])
-                    # print "newPoints are ", newPoints
-                    # print "Adjacent List is", adjListMap
-                    # print 
-                    # print
-            else:
-                x, y = -1, -1
-                dist = 100
-                intersection = False
-                for vertex in adjListMap[key]:
-                    newx, newy = Nearest_Point([NN, newPoints[vertex]], points[i])
-                    newdist = np.linalg.norm(np.array((newx, newy))-np.array(points[i]))
-                for obstacle in obstacles:
-                    for k in range(0, len(obstacle)):
-                        o2 = obstacle[k]
-                        o1 = obstacle[k - 1]
-                        c1, c2 = findIntersection([o1,o2], [(newx,newy), points[i]])
-                        #print "Points of intersection",c1,c2
-                        if c1 > 0 and c2 > 0:
-                            intersection = True
-                            # print c1, c2
-                            # print "Intersecting the line is True"
+            x, y = -1, -1
+            dist = 100
+	    intersection = False
+            for vertex in adjListMap[key]:
+                newx, newy = Nearest_Point([NN, newPoints[vertex]], points[i])
+                newdist = np.linalg.norm(np.array((newx, newy))-np.array(points[i]))
+        	for obstacle in obstacles:
+            	    for k in range(0, len(obstacle)):
+                	o2 = obstacle[k]
+                	o1 = obstacle[k - 1]
 
+			#coll = recursive(robot,(newx,newy), points[i], obstacle)
+			#print coll
+			#print "Points", points[i],"New point on line", newx, newy
+			c1, c2 = findIntersection([o1,o2], [(newx,newy), points[i]])
+			#print "Points of intersection",c1,c2
+			if c1 > 0 and c2 > 0:
+			    intersection = True
+			    print c1, c2
+			    print "Intersecting the line is True"
+			    
+			#print "Lines don't collide"
                 if newdist < dist and intersection == False:
-                    coll = recursive(robot,(newx,newy), points[i], obstacles)
-                    # print coll
-                    if coll == True:
-                            dist = newdist
-                            x, y = newx, newy
-                    # add x, y as a point on RRT
-                    if x >= 0 and y >= 0:
-                        newPoints[count+1] = (x, y)
-                        newPoints[count+2] = points[i]
-                        pointArr.append(points[i])
-                        pointArr.append((x,y))
-                        # update adjListMap for all points
-                        adjListMap[count+1] = [key, vertex, count+2]
+		    coll = recursive(robot,(newx,newy), points[i], obstacles)
+		    print coll
+		    if coll == True:
+                        dist = newdist
+                        x, y = newx, newy
+            # add x, y as a point on RRT
+            if x >= 0 and y >= 0:
+                newPoints[count+1] = (x, y)
+                newPoints[count+2] = points[i]
+                pointArr.append(points[i])
+                pointArr.append((x,y))
+                # update adjListMap for all points
+                adjListMap[count+1] = [key, vertex, count+2]
 
-                        adjListMap[count+2] =  [count+1]
-                        # remove vertex from NN's adjlist, add (x, y) only if (x, y) is not NN itself
-                        if x != NN[0] and y != NN[1]:
-                            arr = adjListMap[key]
-                            arr.remove(vertex)
-                            arr.append(count+1)
-                            adjListMap[key] = arr
-                        else:
+                adjListMap[count+2] =  [count+1]
+                # remove vertex from NN's adjlist, add (x, y) only if (x, y) is not NN itself
+                if x != NN[0] and y != NN[1]:
+                    arr = adjListMap[key]
+                    arr.remove(vertex)
+                    arr.append(count+1)
+                    adjListMap[key] = arr
+                else:
 
-                            arr = adjListMap[key]
-                            arr.append(count+1)
-                            adjListMap[key] = arr
-                        # remove NN from vertex's adjlist, add (x, y)
-                        arr = adjListMap[vertex]
-                        if key in arr:
-                            arr.remove(key)
-                        arr.append(count+1)
-                        adjListMap[vertex] = arr
-                        # update count for indexes of newPoints
-                        count = count+2
-            if(i%10 == 0) and Sconnected == False:
-                Sconnected = True
-                startkey = count
-                print "Start Added"
-            if(i%11 == 0) and Gconnected == False:
-                Gconnected = True
-                goalkey = count
-                print "Gaol Added"
-        if Sconnected and Gconnected:
-            print "Start and Goal Added"
-            return startkey, goalkey, newPoints, adjListMap
-
-	#displayRRTandPath(newPoints, adjListMap,None, startr, goalr, obstacles)
+                    arr = adjListMap[key]
+                    arr.append(count+1)
+                    adjListMap[key] = arr
+                # remove NN from vertex's adjlist, add (x, y)
+                arr = adjListMap[vertex]
+                if key in arr:
+	            arr.remove(key)
+                arr.append(count+1)
+                adjListMap[vertex] = arr
+                # update count for indexes of newPoints
+                count = count+2
+		if(i%5 == 0) and Sconnected == False:
+		    Sconnected = True
+		    startkey = count
+		    print "Start Added"
+		if(i%6 == 0) and Gconnected == False:
+		   Gconnected = True
+		   goalkey = count
+		   print "Gaol Added"
+	if Sconnected and Gconnected:
+	    print "Start and Goal Added"
+	    return startkey, goalkey, newPoints, adjListMap
 
     return startkey, goalkey, newPoints, adjListMap
-
 
 '''
 The full RRT algorithm
@@ -500,22 +500,23 @@ def RRT(robot, obstacles, startPoint, goalPoint):
     j = 1
     randompoints = dict()
     while (len(path) == 0):
-        N = 20
+        N = 50
         for i in range(1, N):
             x = np.random.uniform(0.0,10.0)
             y = np.random.uniform(0.0,10.0)
+	    print "x and y",x,y
             p = (x,y)
             if not inside((float("{0:.2f}".format(p[0])),float("{0:.2f}".format(p[1]))),obstacles) and isCollisionFree(robot, p, obstacles):
                 randompoints[j] = (float("{0:.2f}".format(p[0])),float("{0:.2f}".format(p[1])))
                 j = j+1
         # The Grow Tree 
         startkey, goalkey, points, tree = growfullRRT(randompoints, obstacles, startPoint, goalPoint, robot)
-        # print len(tree)
-        # print startkey,goalkey
+        print len(tree)
+        print startkey,goalkey
         if(len(tree) > 3):
             try:
                 path = basicSearch(tree, startkey, goalkey)
-                # print "path is ", path
+                print "path is ", path
             except:
                 continue
         else:
@@ -569,7 +570,7 @@ if __name__ == "__main__":
         return (x+x2, y+y2)
     robotStart = map(start, robot)
     robotGoal = map(goal, robot)
-    # drawProblem(robotStart, robotGoal, obstacles)
+    drawProblem(robotStart, robotGoal, obstacles)
 
     # Example points for calling growSimpleRRT
     # You should expect many mroe points, e.g., 200-500
@@ -608,7 +609,7 @@ if __name__ == "__main__":
 
     print "path done, ",path
     # Your visualization code 
-    displayRRTandPath(points, adjListMap, path, translateRobot(robot, points[1]), translateRobot(robot, points[12])) 
+    displayRRTandPath(points, adjListMap, path, translateRobot(robot, points[1]), translateRobot(robot, points[24])) 
 
     # Solve a real RRT problem
     points, adjListMap, path = RRT(robot, obstacles, (x1, y1), (x2, y2))
